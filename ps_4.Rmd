@@ -219,12 +219,36 @@ ggplot(orig, aes(x = educ, y = final_weight)) +
 ```
 
 
-```{r, echo=FALSE, include=FALSE}
+## Question 4
 
-
-
+```{r age_chart, echo=FALSE}
+orig %>% 
+  
+  # Select age and response data
+  
+  select(ager, response) %>% 
+  
+  # Filters out responses not of interest
+  
+  filter(ager != "[DO NOT READ] Refused" & response != '3') %>% 
+  
+  # Groups data by age and response
+  
+  group_by(ager, response) %>% 
+  
+  # Creates stacked bar graph by age group and response
+  
+  ggplot(aes(x = ager, fill = response)) +
+  geom_bar() +
+  
+  # Provides axes labels
+  xlab("Age Group") +
+  ylab("Number of Responses") + 
+  labs(title = "Age Group and Party Preferences in North Carolina",
+       caption = "New York Times Upshot/Sienna College 2018 live polls",
+       fill = "Party Preference\n")
+        
 ```
-
 
 
 
