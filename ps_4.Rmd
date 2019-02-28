@@ -135,9 +135,9 @@ Q2 <- orig %>%
   
   # Calculates responses as percentages in target table
   
-  mutate(Dem = Dem / all) %>% 
-  mutate(Rep = Rep / all) %>% 
-  mutate(Und = Und / all) %>% 
+  mutate(Dem = Dem / all, 
+         Rep = Rep / all,
+         Und = Und / all) %>% 
   select(-`3`, -all, -na.rm) %>% 
   
   ungroup() %>% 
@@ -146,10 +146,17 @@ Q2 <- orig %>%
   
   slice(match(c("White", "Black", "Hispanic", "Asian", "Other"), race_eth))
   
-  # You will have a chance to explore many other gt commands in problem set #4.
-  # I added two extras that we did not get to in class.
+ 
+ # Make table in gt
   
   gt(Q2) %>% 
+
+    # Provides title and source  
+    
+    tab_header(title = "Polling Results of 9th Congressional District North Carolina") %>%
+    tab_source_note(source_note = "Source: New York Times Upshot/Siena College 2018 Live Polls") %>% 
+    
+    # Labels columns of table
     
     cols_label(
       race_eth = "",
@@ -157,9 +164,20 @@ Q2 <- orig %>%
       Rep = "REP.",
       Und = "UND."
       ) %>%
+
+    
+    # Convert all values to percentages
+    
+    fmt_percent(columns = vars(Dem, Rep, Und), decimals = 0) %>% 
+    
+    # Replace row 4 NA with hyphen to reflect target table
   
-    fmt_percent(columns = vars(Dem, Rep, Und), decimals = 0) %>% 
-    fmt_percent(columns = vars(Dem, Rep, Und), decimals = 0) %>% 
+    fmt_missing(columns = vars(Und), rows = 4) %>% 
+    
+    # How to print the sample size and motivation for organizing companies in column 1
+      
+    # Color-coding for cells in table
+    
     tab_style(style = cells_styles(bkgd_color = "#fbfafb", text_color = "#666666"), locations = cells_data()) %>%
     tab_style(style = cells_styles(bkgd_color = "#ffffff", text_color = "#666666"), locations = cells_data(columns = 1)) %>%
     tab_style(style = cells_styles(bkgd_color = "#d0202d", text_color = "#ffffff"), locations = cells_data(columns = 3, rows = 1)) %>% 
@@ -173,6 +191,31 @@ Q2 <- orig %>%
     as_raw_html() %>% as.character() %>% cat()
   
 
+```
+
+## Question 3
+
+```{r violin_plot, echo = FALSE}
+
+ggplot(orig, aes(x = educ, y = final_weight)) +
+  
+  # Creates violin plot
+  
+  geom_violin() +
+  
+  geom_jitter(alpha = 0.5, width = 0.21, size = 0.8) +
+  
+  coord_flip() +
+  
+  scale_x_discrete(limits=c("Grade school", "High school", "Some college or trade school", "Bachelors' degree", "Graduate or Professional Degree")) +
+  
+  xlab(NULL) +
+  
+  ylab("Weight Given to Respondent in Calculating Poll Results") +
+  
+  labs(title = "More Educated Matter Less in North Carolina 9th",
+       subtitle = "Poll gives more weight to people who are less likely to participate in polls",
+       caption = "New York Times Upshot/Siena College 2018 live polls")
 ```
 
 
