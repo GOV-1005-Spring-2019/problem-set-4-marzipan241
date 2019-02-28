@@ -221,62 +221,7 @@ ggplot(orig, aes(x = educ, y = final_weight)) +
 
 ```{r, echo=FALSE, include=FALSE}
 
-# Read in ps_3_enrollment.xlsx spreadsheet
-# Clean data, set resulting dataframe as "x"
 
-x <- read_xlsx("ps_3_enrollment.xlsx", skip = 3) %>% 
-  janitor::clean_names() %>% 
-  
-  # Filter for existing courses
-  
-  filter(!is.na(course_section_code)) %>% 
-  
-  # Filter for courses with more than 5 undergraduates 
-  
-  filter(u_grad > 5) %>% 
-  
-  # Filter for courses with a majority of undergraduates
-  
-  filter(u_grad / total > 0.5)
-
-# Print number of courses
-
-nrow(x)
-
-
-# Arranges undergraduate enrollment in descending order
-# Print first 9 rows, finds course with 9th highest undergraduate enrollment
-
-x %>% 
-  arrange(desc(u_grad)) %>% 
-  head(x, n=9)
-  
-
-
-# Finds course with 9th highest undergraduate enrollment
-
-x %>% 
-  
-  # Groups data by department
-  
-  group_by(course_department) %>% 
-  
-  # Finds total undergraduate enrollment in each department
-  summarise(total = sum(u_grad)) %>% 
-  
-  # Arranges total undergraduate enrollment in each department in descending order
-  arrange(desc(total)) %>% 
-  
-  # Prints head (first 6 values), finds department with 6th highest total undergraduate enrollment
-  head()
-
-
-
-# Finds total undergraduate enrollment in Economics department 
-
-x %>% 
-  filter(course_department == "Economics") %>% 
-  summarise(total = sum(u_grad)) 
 
 ```
 
