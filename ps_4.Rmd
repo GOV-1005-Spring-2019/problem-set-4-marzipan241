@@ -15,7 +15,7 @@ library(tidyverse)
 library(janitor)
 library(readxl)
 library(lubridate)
-
+library(ggplot2)
 
 orig <- read_csv("ps_4_elections-poll-nc09-3.csv",
                  col_types = cols(
@@ -27,6 +27,7 @@ orig <- read_csv("ps_4_elections-poll-nc09-3.csv",
                    final_weight = col_double(),
                    timestamp = col_datetime(format = ""))) %>% 
   # Tidy data
+  
   clean_names() %>% 
   filter(!is.na(response),
          !is.na(race_eth),
@@ -116,31 +117,39 @@ The first response of Rep came `r Q1e` minutes (rounded to the nearest minute) b
 Q2 <- orig %>% 
   
   # Select relevant columns
+  
   select(response, race_eth, final_weight) %>% 
   group_by(race_eth, response) %>% 
+  
+  # Finds total weights for each race_eth and response combination
+  
   summarize(total = sum(final_weight, na.rm = TRUE)) %>%   
-  filter(race_eth != "[DO NOT READ] Don't know/Refused") %>% 
-  spread(key =  response, value = total) %>% 
-  mutate(all = Dem + Rep + Und + `3`) %>% 
+  
+  # Rearranges data into target table groupings
+  
+  spread(key =  response, value = total, fill = 0) %>% 
+  
+  # Account for no Asian responses to Und column with na.rm = TRUE
+  
+  mutate(all = Dem + Rep + Und + `3`, na.rm = TRUE) %>% 
+  
+  # Calculates responses as percentages in target table
+  
   mutate(Dem = Dem / all) %>% 
   mutate(Rep = Rep / all) %>% 
   mutate(Und = Und / all) %>% 
-  select(-all) %>% 
-  
-  # One of the biggest pieces of black magic incantation in R is ungroup(). (I
-  # did not mention this in class.) Summary: Whenever you group a tibble (as we
-  # do above) the grouping stays with an resulting object, until you explicitly
-  # ungroup() it. That can't ever hurt things (right? TFs?) and it often helps,
-  # as in this case.
+  select(-`3`, -all, -na.rm) %>% 
   
   ungroup() %>% 
+  
+  # Reorder variables according to target table
+  
+  slice(match(c("White", "Black", "Hispanic", "Asian", "Other"), race_eth))
   
   # You will have a chance to explore many other gt commands in problem set #4.
   # I added two extras that we did not get to in class.
   
-  gt() %>% 
-    tab_header(
-      title = "Polling Results in Arizon 6th Congressional District") %>% 
+  gt(Q2) %>% 
     
     cols_label(
       race_eth = "",
@@ -149,13 +158,17 @@ Q2 <- orig %>%
       Und = "UND."
       ) %>%
   
-    fmt_percent(columns = vars(Dem, Rep, Und),
-                decimals = 0) %>% 
+    fmt_percent(columns = vars(Dem, Rep, Und), decimals = 0) %>% 
+    fmt_percent(columns = vars(Dem, Rep, Und), decimals = 0) %>% 
+    tab_style(style = cells_styles(bkgd_color = "#fbfafb", text_color = "#666666"), locations = cells_data()) %>%
+    tab_style(style = cells_styles(bkgd_color = "#ffffff", text_color = "#666666"), locations = cells_data(columns = 1)) %>%
+    tab_style(style = cells_styles(bkgd_color = "#d0202d", text_color = "#ffffff"), locations = cells_data(columns = 3, rows = 1)) %>% 
+  tab_style(style = cells_styles(bkgd_color = "#d0202d", text_color = "#ffffff"), locations = cells_data(columns = 3, rows = 3)) %>%
+  tab_style(style = cells_styles(bkgd_color = "#d0202d", text_color = "#ffffff"), locations = cells_data(columns = 3, rows = 4)) %>% 
+  tab_style(style = cells_styles(bkgd_color = "#1f87c5", text_color = "#ffffff"), locations = cells_data(columns = 2, rows = 2)) %>% 
+  tab_style(style = cells_styles(bkgd_color = "#1f87c5", text_color = "#ffffff"), locations = cells_data(columns = 2, rows = 5)) %>% 
+
   
-    # This little pipe is that incantation to take this pretty table, turn it
-    # into html, and send it to the md file we are creating. Future versions of
-    # gt will probably have a better way of doing this. Indeed, does anyone know
-    # of one?
 
     as_raw_html() %>% as.character() %>% cat()
   
@@ -163,3 +176,11 @@ Q2 <- orig %>%
 ```
 
 
+
+
+
+
+
+## Colleagues
+
+Simone Chu, Igor Morzan
