@@ -12,10 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(gt)
 library(tidyverse)
+library(janitor)
+library(readxl)
+library(lubridate)
 
 
-orig <- read_csv(
-  file = "https://raw.githubusercontent.com/TheUpshot/2018-live-poll-results/master/data/elections-poll-az06-3.csv",
+orig <- read_csv("ps_4_elections-poll-nc09-3.csv",
                  col_types = cols(
                    .default = col_character(),
                    turnout_scale = col_double(),
@@ -23,33 +25,103 @@ orig <- read_csv(
                    w_LV = col_double(),
                    w_RV = col_double(),
                    final_weight = col_double(),
-                   timestamp = col_datetime(format = "")))
-
+                   timestamp = col_datetime(format = ""))) %>% 
+  # Tidy data
+  clean_names() %>% 
+  filter(!is.na(response),
+         !is.na(race_eth),
+         !is.na(final_weight),
+         educ != "[DO NOT READ] Refused")
+  
 ```
 
+
+## Question 1
+```{r Question 1a, echo=FALSE}
+
+# Filter data for Democratic candidates, counts Democratic candidates
+
+Q1a <- orig %>% filter(response == "Dem") %>% nrow()
+```
+
+There were `r Q1a` respondents who supported the Democratic candidate.
+
+```{r Question 1b, echo=FALSE}
+
+# Counts Republican and Undecided responses, finds difference between Republican and Undecided responses
+
+Q1b <- orig %>% 
+  filter(response %in% c("Rep", "Und")) %>% 
+  group_by(response) %>% 
+  count()
+
+Q1b_ans <- Q1b$n[1] - Q1b$n[2]
+```
+
+There were `r Q1b_ans` more respondents who favored the Republican candidate than who were Undecided.
+
+```{r Question 1c, echo=FALSE}
+
+# Select gender and gender_combined, filter for where values are different
+
+Q1c <- orig %>% 
+  select(gender, gender_combined) %>% 
+  filter(gender != gender_combined) %>% 
+  count()
+```
+
+There are two gender variables (gender and gender_combined). There are `r Q1c` individuals for whom these variables have different values.
+
+```{r Question 1d, echo=FALSE}
+
+# Filters for value "White" under race_eth but not file_race_black
+
+Q1d <- orig %>% 
+  filter(race_eth == "White") %>% 
+  filter(file_race_black != "White") %>% 
+  count()
+```
+
+There are `r Q1d` respondents listed as “White” under race_eth who are not listed as “White” under file_race_black.
+
+```{r Question 1e, echo=FALSE}
+
+# Filters for first response time of Rep
+
+rep_first <- orig %>% 
+  filter(response == "Rep") %>% 
+  arrange(timestamp) %>% 
+  slice(1) %>% 
+  select(timestamp)
+
+# Filters for first response time of Dem
+
+dem_first <- orig %>% 
+  filter(response == "Dem") %>% 
+  arrange(timestamp) %>% 
+  slice(1) %>% 
+  select(timestamp)
+
+# Calculates difference rounded to the nearest minute between first response of Rep and first response of Dem
+
+Q1e <- round(as.numeric(rep_first - dem_first))
+```
+
+The first response of Rep came `r Q1e` minutes (rounded to the nearest minute) before the first response of Dem.
+
+
+## Question 2
 ```{r make_chart, echo=FALSE, results="asis"}
-# Note that I typically set knitr::opts_chunk$set(echo = FALSE) in the first
-# code chunk. This makes echo=FALSE the default, meaning that I would not need
-# to set it here.
 
-# You need results="asis" anytime you want to use gt to create a chart.
-
-orig %>% 
-  select(response, educ4, final_weight) %>% 
-  group_by(educ4, response) %>% 
+Q2 <- orig %>% 
   
-  # Again, this is not a course in survey weighting. There is an argument that I
-  # should just ignore the topic altogether. But, I really like to replicate
-  # published results, and that always requires weights. Hence today's
-  # monologue. But only two people fell asleep during it --- not kidding! --- so
-  # I count that as a victory.
-  
-  # All you need to know for this class is: Use sum(weight_var) in place of n().
-  
-  summarize(total = sum(final_weight)) %>%   
-  filter(educ4 != "[DO NOT READ] Don't know/Refused") %>% 
+  # Select relevant columns
+  select(response, race_eth, final_weight) %>% 
+  group_by(race_eth, response) %>% 
+  summarize(total = sum(final_weight, na.rm = TRUE)) %>%   
+  filter(race_eth != "[DO NOT READ] Don't know/Refused") %>% 
   spread(key =  response, value = total) %>% 
-  mutate(all = Dem + Rep + Und) %>% 
+  mutate(all = Dem + Rep + Und + `3`) %>% 
   mutate(Dem = Dem / all) %>% 
   mutate(Rep = Rep / all) %>% 
   mutate(Und = Und / all) %>% 
@@ -71,7 +143,7 @@ orig %>%
       title = "Polling Results in Arizon 6th Congressional District") %>% 
     
     cols_label(
-      educ4 = "Education",
+      race_eth = "",
       Dem = "DEM.",
       Rep = "REP.",
       Und = "UND."
